@@ -76,6 +76,7 @@ for i in range(1, context_size+1):
 
 # In order to make the input-targets more efficient, let's do with tensor
 import torch
+import torch as th
 from torch.utils.data import Dataset, DataLoader
 
 # Building input-targets using tiktoken and torch for efficient data loading
@@ -107,3 +108,47 @@ def create_dataloader(txt, batch_size=4,
     dataloader = DataLoader(
         dataset, batch_size=batch_size, shuffle=shuffle)
     return dataloader
+
+dataloader = create_dataloader(
+    raw_text, batch_size=1, max_length=4, stride=1, shuffle=False)
+data_iter = iter(dataloader)
+first_batch = next(data_iter)
+print(first_batch)
+
+second_batch = next(data_iter)
+print(second_batch)
+# Create a token embeddings
+output_dims = 100
+th.manual_seed(123)
+embedding_layer = th.nn.Embedding(vocab_size, output_dims)
+print(embedding_layer)
+# print(embedding_layer(torch.tensor([3])))
+
+# Return the 3rd row of the embedding layer by passing a token ID 3
+print(embedding_layer(torch.tensor([3])))
+
+
+############ Step 4. Positional Encoding
+### Use BPE tokenizer with 50257 vocab size and use 256-dimensional vector for word representation
+output_dim = 256
+vocab_size = 50257
+token_embedding_layer = torch.nn.Embedding(vocab_size, output_dim)
+# Initiate data_loader
+max_length = 4
+dataloader = create_dataloader(
+    raw_text, batch_size=8, max_length=max_length, stride=5, shuffle=False)
+data_iter = iter(dataloader)
+inputs, targets = next(data_iter)
+# print("Token IDs:\n", inputs)
+# print("\nInputs shape:\n", inputs.shape)
+# Use embedding layer to embed the tokens into 256-D vectors
+token_embeddings = token_embedding_layer(inputs)
+
+# For GPT-based, we need to create another embedding layer (PE) which has the same dimension as the token_embedding_layer
+
+block_size = max_length # the supported input size of the LLMs, longer/shorter text can be truncated/filled
+pos_embedding_layer = torch.nn.Embedding(block_size, output_dim)
+pos_embeddings = pos_embedding_layer(torch.arange(block_size))
+
+input_embeddings = token_embeddings + pos_embeddings
+print(input_embeddings.shape)
